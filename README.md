@@ -4,7 +4,7 @@
 [![Link do Repósitorio do POC desse projeto](https://img.shields.io/badge/Prova_de_Conceito-Repo-D0CEE5?logo=github)](https://github.com/leafcabral/consulta-pronta-poc)
 
 
-ConsultaPronta é um a plataforma Inteligente para Triagem, Direcionamento e Acompanhamento da Saúde do Paciente
+ConsultaPronta é uma plataforma inteligente para triagem, direcionamento e acompanhamento da saúde do paciente, facilitando a comunicação com profissionais de saúde.
 
 
 ## Protótipo
