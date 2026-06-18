@@ -1,9 +1,12 @@
+CREATE DATABASE IF NOT EXISTS consultapronta;
+
 CREATE TABLE IF NOT EXISTS paciente (
 	id_paciente INTEGER GENERATED ALWAYS AS IDENTITY,
 	nome VARCHAR(100) NOT NULL,
 	telefone VARCHAR(15) NOT NULL UNIQUE,
 	email VARCHAR(100) NOT NULL UNIQUE,
 	cpf CHAR(11) NOT NULL UNIQUE,
+	senha VARCHAR(255) NOT NULL,
 	tipo_sanguineo VARCHAR(3),
 	peso NUMERIC(5,2),
 	altura SMALLINT,
@@ -21,7 +24,7 @@ CREATE TABLE IF NOT EXISTS alergia (
 		PRIMARY KEY (id_alergia),
 	CONSTRAINT FK_ALERGIA_id_paciente
 		FOREIGN KEY (id_paciente)
-		REFERENCES PACIENTE(id_paciente)
+		REFERENCES paciente(id_paciente)
 		ON DELETE CASCADE
 );
 
@@ -35,7 +38,7 @@ CREATE TABLE IF NOT EXISTS historico_familiar (
 		PRIMARY KEY (id_historico_familiar),
 	CONSTRAINT FK_HISTORICO_FAMILIAR_id_paciente
 		FOREIGN KEY (id_paciente)
-		REFERENCES PACIENTE(id_paciente)
+		REFERENCES paciente(id_paciente)
 		ON DELETE CASCADE
 );
 
@@ -46,6 +49,7 @@ CREATE TABLE IF NOT EXISTS profissional (
 	email VARCHAR(100) NOT NULL UNIQUE,
 	cpf CHAR(11) NOT NULL UNIQUE,
 	crm VARCHAR(10) NOT NULL UNIQUE,
+	senha VARCHAR(255) NOT NULL,
 	local_atuacao VARCHAR(100),
 
 	CONSTRAINT PK_PROFISSIONAL
@@ -70,11 +74,11 @@ CREATE TABLE IF NOT EXISTS formacao (
 		PRIMARY KEY (rqe),
 	CONSTRAINT FK_FORMACAO_id_profissional
 		FOREIGN KEY (id_profissional)
-		REFERENCES PROFISSIONAL(id_profissional)
+		REFERENCES profissional(id_profissional)
 		ON DELETE CASCADE,
 	CONSTRAINT FK_FORMACAO_id_especialidade
 		FOREIGN KEY (id_especialidade)
-		REFERENCES ESPECIALIDADE(id_especialidade)
+		REFERENCES especialidade(id_especialidade)
 		ON DELETE RESTRICT
 );
 
@@ -90,11 +94,11 @@ CREATE TABLE IF NOT EXISTS log_sistema (
 		PRIMARY KEY (id_log),
 	CONSTRAINT FK_LOG_id_profissional
 		FOREIGN KEY (id_profissional)
-		REFERENCES PROFISSIONAL(id_profissional)
+		REFERENCES profissional(id_profissional)
 		ON DELETE CASCADE,
 	CONSTRAINT FK_LOG_id_paciente
 		FOREIGN KEY (id_paciente)
-		REFERENCES PACIENTE(id_paciente)
+		REFERENCES paciente(id_paciente)
 		ON DELETE CASCADE
 );
 
@@ -109,11 +113,11 @@ CREATE TABLE IF NOT EXISTS contato (
 		PRIMARY KEY (id_contato),
 	CONSTRAINT FK_CONTATO_id_profissional
 		FOREIGN KEY (id_profissional)
-		REFERENCES PROFISSIONAL(id_profissional)
+		REFERENCES profissional(id_profissional)
 		ON DELETE CASCADE,
 	CONSTRAINT FK_CONTATO_id_paciente
 		FOREIGN KEY (id_paciente)
-		REFERENCES PACIENTE(id_paciente)
+		REFERENCES paciente(id_paciente)
 		ON DELETE CASCADE
 );
 
@@ -133,14 +137,15 @@ CREATE TABLE IF NOT EXISTS consulta (
 		ON DELETE SET NULL,
 	CONSTRAINT FK_CONSULTA_id_paciente
 		FOREIGN KEY (id_paciente)
-		REFERENCES PACIENTE(id_paciente)
+		REFERENCES paciente(id_paciente)
 		ON DELETE SET NULL,
 	CONSTRAINT FK_CONSULTA_id_hospital
 		FOREIGN KEY (id_hospital)
-		REFERENCES HOSPITAL(id_hospital)
+		REFERENCES hospital(id_hospital)
 		ON DELETE SET NULL
 );
 
+-- local -> local_sintoma (aparentemente palavra reservada)
 CREATE TABLE IF NOT EXISTS sintoma (
 	id_sintoma INTEGER GENERATED ALWAYS AS IDENTITY,
 	id_paciente INTEGER NOT NULL,
@@ -148,12 +153,29 @@ CREATE TABLE IF NOT EXISTS sintoma (
 	data_inicio TIMESTAMPTZ NOT NULL,
 	status VARCHAR(15) NOT NULL DEFAULT "presente",
 	descricao VARCHAR(300),
+	local_sintoma VARCHAR(50)
 
 	CONSTRAINT PK_SINTOMA
 		PRIMARY KEY (id_sintoma),
 	CONSTRAINT FK_SINTOMA_id_paciente
 		FOREIGN KEY (id_paciente)
-		REFERENCES PACIENTE(id_paciente)
+		REFERENCES paciente(id_paciente)
+		ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS sintoma_historico (
+	id_sintoma_historico INTEGER GENERATED ALWAYS AS IDENTITY,
+	id_sintoma INTEGER NOT NULL,
+	data_alteracao DATE NOT NULL,
+	motivo VARCHAR(200) NOT NULL,
+	valor_antigo JSONB NOT NULL,
+	valor_novo JSONB NOT NULL,
+
+	CONSTRAINT PK_SINTOMA_HSITORICO
+		PRIMARY KEY (id_sintoma_historico),
+	CONSTRAINT FK_SINTOMA_HISTORICO_id_sintoma
+		FOREIGN KEY (id_sintoma)
+		REFERENCES sintoma(id_sintoma)
 		ON DELETE CASCADE
 );
 
@@ -206,11 +228,11 @@ CREATE TABLE IF NOT EXISTS autorizacao (
 		PRIMARY KEY (id_autorizacao),
 	CONSTRAINT FK_AUTORIZACAO_id_profissional
 		FOREIGN KEY (id_profissional)
-		REFERENCES PROFISSIONAL(id_profissional)
+		REFERENCES profissional(id_profissional)
 		ON DELETE SET NULL,
 	CONSTRAINT FK_AUTORIZACAO_id_paciente
 		FOREIGN KEY (id_paciente)
-		REFERENCES PACIENTE(id_paciente)
+		REFERENCES paciente(id_paciente)
 		ON DELETE SET NULL
 );
 
@@ -257,11 +279,11 @@ CREATE TABLE IF NOT EXISTS prescricao (
 		PRIMARY KEY (id_prescricao),
 	CONSTRAINT FK_PRESCRICAO_id_profissional
 		FOREIGN KEY (id_profissional)
-		REFERENCES PROFISSIONAL(id_profissional)
+		REFERENCES profissional(id_profissional)
 		ON DELETE CASCADE,
 	CONSTRAINT FK_PRESCRICAO_id_paciente
 		FOREIGN KEY (id_paciente)
-		REFERENCES PACIENTE(id_paciente)
+		REFERENCES paciente(id_paciente)
 		ON DELETE CASCADE
 );
 
@@ -272,16 +294,17 @@ CREATE TABLE IF NOT EXISTS item_prescricao (
 	dosagem VARCHAR(10),
 	frequencia VARCHAR(10),
 	duracao VARCHAR(10) NOT NULL,
+	consumido BOOLEAN NOT NULL,
 
 	CONSTRAINT PK_ITEM_PRESCRICAO
 		PRIMARY KEY (id_item),
 	CONSTRAINT FK_ITEM_PRESCRICAO_id_prescricao
 		FOREIGN KEY (id_prescricao)
-		REFERENCES PRESCRICAO(id_prescricao)
+		REFERENCES prescricao(id_prescricao)
 		ON DELETE CASCADE,
 	CONSTRAINT FK_ITEM_PRESCRICAO_id_medicamento
 		FOREIGN KEY (id_medicamento)
-		REFERENCES MEDICAMENTO(id_medicamento)
+		REFERENCES medicamento(id_medicamento)
 		ON DELETE RESTRICT
 );
 
@@ -291,16 +314,17 @@ CREATE TABLE IF NOT EXISTS automedicacao (
 	id_medicamento INTEGER NOT NULL,
 	motivacao VARCHAR(100) NOT NULL,
 	data_inicio DATE NOT NULL DEFAULT CURRENT_DATE,
+	consumido BOOLEAN NOT NULL,
 
 	CONSTRAINT PK_AUTOMEDICACAO
 		PRIMARY KEY (id_automedicacao),
 	CONSTRAINT FK_AUTOMEDICACAO_id_paciente
 		FOREIGN KEY (id_paciente)
-		REFERENCES PACIENTE(id_paciente)
+		REFERENCES paciente(id_paciente)
 		ON DELETE CASCADE,
 	CONSTRAINT FK_AUTOMEDICACAO_id_medicamento
 		FOREIGN KEY (id_medicamento)
-		REFERENCES MEDICAMENTO(id_medicamento)
+		REFERENCES medicamento(id_medicamento)
 		ON DELETE RESTRICT
 );
 
@@ -313,11 +337,11 @@ CREATE TABLE IF NOT EXISTS recurso_profissional (
 		PRIMARY KEY (id_profissional, id_recurso),
 	CONSTRAINT FK_Registra_id_profissional
 		FOREIGN KEY (id_profissional)
-		REFERENCES PROFISSIONAL(id_profissional)
+		REFERENCES profissional(id_profissional)
 		ON DELETE SET NULL,
 	CONSTRAINT FK_Registra_id_recurso
 		FOREIGN KEY (id_recurso)
-		REFERENCES RECURSO(id_recurso)
+		REFERENCES recurso(id_recurso)
 		ON DELETE SET NULL
 );
 
@@ -330,11 +354,11 @@ CREATE TABLE IF NOT EXISTS sintoma_relatorio (
 		PRIMARY KEY (id_sintoma, id_relatorio),
 	CONSTRAINT FK_Contem_id_sintoma
 		FOREIGN KEY (id_sintoma)
-		REFERENCES SINTOMA(id_sintoma)
+		REFERENCES sintoma(id_sintoma)
 		ON DELETE RESTRICT,
 	CONSTRAINT FK_Contem_id_relatorio
 		FOREIGN KEY (id_relatorio)
-		REFERENCES RELATORIO(id_relatorio)
+		REFERENCES relatorio(id_relatorio)
 		ON DELETE CASCADE
 );
 
@@ -347,11 +371,11 @@ CREATE TABLE IF NOT EXISTS recurso_hospital (
 		PRIMARY KEY (id_recurso, id_hospital),
 	CONSTRAINT FK_Pertence_id_recurso
 		FOREIGN KEY (id_recurso)
-		REFERENCES RECURSO(id_recurso)
+		REFERENCES recurso(id_recurso)
 		ON DELETE SET NULL,
 	CONSTRAINT FK_Pertence_id_hospital
 		FOREIGN KEY (id_hospital)
-		REFERENCES HOSPITAL(id_hospital)
+		REFERENCES hospital(id_hospital)
 		ON DELETE CASCADE
 );
 
@@ -364,11 +388,11 @@ CREATE TABLE IF NOT EXISTS relatorio_profissional (
 		PRIMARY KEY (id_relatorio, id_profissional),
 	CONSTRAINT FK_Recebe_id_relatorio
 		FOREIGN KEY (id_relatorio)
-		REFERENCES RELATORIO(id_relatorio)
+		REFERENCES relatorio(id_relatorio)
 		ON DELETE CASCADE,
 	CONSTRAINT FK_Recebe_id_profissional
 		FOREIGN KEY (id_profissional)
-		REFERENCES PROFISSIONAL(id_profissional)
+		REFERENCES profissional(id_profissional)
 		ON DELETE CASCADE
 );
 
@@ -385,10 +409,10 @@ CREATE TABLE IF NOT EXISTS exame (
 		PRIMARY KEY (id_exame),
 	CONSTRAINT FK_EXAME_id_profissional
 		FOREIGN KEY (id_profissional)
-		REFERENCES PROFISSIONAL(id_profissional),
+		REFERENCES profissional(id_profissional),
 	CONSTRAINT FK_EXAME_id_paciente
 		FOREIGN KEY (id_paciente)
-		REFERENCES PACIENTE(id_paciente)
+		REFERENCES paciente(id_paciente)
 );
 
 CREATE TABLE IF NOT EXISTS prontuario (
@@ -396,7 +420,6 @@ CREATE TABLE IF NOT EXISTS prontuario (
 	id_paciente INTEGER NOT NULL,
 	queixa VARCHAR(100) NOT NULL,
 	historico VARCHAR(300) NOT NULL,
-	antecendentes VARCHAR(100),
 	habitos VARCHAR(100),
 	interrogatorio VARCHAR(300),
 	exames VARCHAR(100),
@@ -407,7 +430,7 @@ CREATE TABLE IF NOT EXISTS prontuario (
 		PRIMARY KEY (id_prontuario),
 	CONSTRAINT FK_PRONTUARIO_id_paciente
 		FOREIGN KEY (id_paciente)
-		REFERENCES PACIENTE(id_paciente)
+		REFERENCES paciente(id_paciente)
 		ON DELETE CASCADE
 );
 
@@ -423,11 +446,11 @@ CREATE TABLE IF NOT EXISTS participa_prontuario (
 		PRIMARY KEY (id_participacao),
 	CONSTRAINT FK_PARTICIPA_PRONTUARIO_id_profissional
 		FOREIGN KEY (id_profissional)
-		REFERENCES PROFISSIONAL(id_profissional)
+		REFERENCES profissional(id_profissional)
 		ON DELETE SET NULL,
 	CONSTRAINT FK_PARTICIPA_PRONTUARIO_id_prontuario
 		FOREIGN KEY (id_prontuario)
-		REFERENCES PRONTUARIO(id_prontuario)
+		REFERENCES prontuario(id_prontuario)
 		ON DELETE CASCADE
 );
 
@@ -442,10 +465,10 @@ CREATE TABLE IF NOT EXISTS anotacao (
 		PRIMARY KEY (id_anotacao),
 	CONSTRAINT FK_ANOTACAO_id_profissional
 		FOREIGN KEY (id_profissional)
-		REFERENCES PROFISSIONAL(id_profissional)
+		REFERENCES profissional(id_profissional)
 		ON DELETE CASCADE,
 	CONSTRAINT FK_ANOTACAO_id_prontuario
 		FOREIGN KEY (id_prontuario)
-		REFERENCES PRONTUARIO(id_prontuario)
+		REFERENCES prontuario(id_prontuario)
 		ON DELETE CASCADE
 );
